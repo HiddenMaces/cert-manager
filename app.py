@@ -8,7 +8,7 @@ app.secret_key = 'supersecretkey'  # Needed for flash messages
 
 CERT_DIR = "./certs"
 ROOT_DIR = "./rootCA"
-ROOT_CA_NAME = "mischa_rootCA"
+ROOT_CA_NAME = ""
 
 # Ensure dirs exist
 os.makedirs(CERT_DIR, exist_ok=True)
