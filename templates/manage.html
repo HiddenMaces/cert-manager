@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <div class="lg:col-span-2 space-y-6">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-bold">{{ fqdn }}</h1>
+            <a href="/delete/{{ fqdn }}" onclick="return confirm('Are you sure? This deletes all files for this cert.')" class="text-red-500 hover:text-red-400 text-sm">Delete Certificate</a>
+        </div>
+
+        <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
+            <h3 class="text-lg font-bold mb-2">Extension File (v3.ext)</h3>
+            <p class="text-xs text-gray-500 mb-2">Edit this to add Subject Alternative Names (SANs) before signing.</p>
+            <form action="/update_ext/{{ fqdn }}" method="POST">
+                <textarea name="ext_content" rows="10" class="w-full font-mono text-sm p-3 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-gray-300">{{ ext_content }}</textarea>
+                <div class="mt-2 text-right">
+                    <button type="submit" class="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded">Save Extensions</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="space-y-6">
+        <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
+            <h3 class="text-lg font-bold mb-4">Signing Actions</h3>
+            
+            {% if has_crt %}
+                <div class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-3 rounded mb-4 text-center">
+                    Certificate Signed (.crt exists)
+                </div>
+                <p class="text-xs text-center text-gray-500 mb-4">You can re-sign if you changed extensions.</p>
+            {% else %}
+                <div class="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 p-3 rounded mb-4 text-center">
+                    Pending Signature
+                </div>
+            {% endif %}
+
+            <div class="space-y-3">
+                <a href="/sign_root/{{ fqdn }}" class="block w-full text-center py-2 bg-s1-500 hover:bg-s1-400 text-white rounded shadow">Sign with Root CA</a>
+                <a href="/sign_self/{{ fqdn }}" class="block w-full text-center py-2 border border-s1-500 text-s1-500 dark:text-s1-400 hover:bg-s1-500 hover:text-white rounded">Self-Sign</a>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
+            <h3 class="text-lg font-bold mb-4">Export</h3>
+            {% if has_crt %}
+                <form action="/create_p12/{{ fqdn }}" method="POST">
+                    <label class="text-xs uppercase font-bold text-gray-500">PF12 Password</label>
+                    <input type="password" name="password" class="w-full p-2 mb-2 rounded border dark:bg-s1-900 dark:border-s1-700">
+                    <button type="submit" class="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded">Create .p12</button>
+                </form>
+                {% if has_p12 %}
+                    <p class="text-xs text-green-500 mt-2 text-center">.p12 file available in directory.</p>
+                {% endif %}
+            {% else %}
+                <p class="text-sm text-gray-500">Sign the certificate first to enable export options.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

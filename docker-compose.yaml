@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  cert-manager:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # Maps local folders to container folders so files persist locally
+      - ./certs:/app/certs
+      - ./rootCA:/app/rootCA
+    environment:
+      - FLASK_ENV=development
