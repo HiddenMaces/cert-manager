@@ -259,6 +259,41 @@ create_rootca() {
     fi
 }
 
+list_certificates() {
+    
+    #  Enable nullglob (handles case where directory is empty)
+    shopt -s nullglob
+    # Load full paths (e.g., "./certs/file1") into an array
+    full_paths=("$CERT_DIR"/*)
+    shopt -u nullglob
+
+    if [ ${#full_paths[@]} -eq 0 ]; then
+        echo -e "${RED}No files found in $CERT_DIR${NC}"
+        exit 1
+    fi
+
+    echo -e "${CYAN}Found ${#full_paths[@]} files in '$CERT_DIR':${NC}"
+
+    # Create a SECOND array containing only filenames (strips the path)
+    # The syntax "${array[@]##*/}" removes everything up to the last '/' for every item.
+    filenames=("${full_paths[@]##*/}")
+
+    # The select loop (uses the Clean Filenames)
+    PS3="Select a cert number: "
+    select file in "${filenames[@]}"; do
+        if [[ -n "$file" ]]; then
+            # Store the clean filename in the variable
+            FQDN="$file"
+            break
+        else
+            echo -e "${RED}Invalid selection. Try again.${NC}"
+        fi
+    done
+
+    echo -e "${CYAN}--------------------------------${NC}"
+    echo -e "$FQDN selected\n"
+}
+
 # --- Menu ---
 while true; do
     echo -e "\n${CYAN}PKI Management Menu${NC}"
@@ -280,11 +315,12 @@ while true; do
     read -r choice
 
     case $choice in
-        1) create_rootca ;;
-        2) create_csr ;;
-        3) show_exec_sign_cmd ;;
-        4) show_exec_self_sign_cmd ;;
-        5) create_pempf12 ;;
+        1) list_certificates ;;
+        2) create_rootca ;;
+        3) create_csr ;;
+        4) show_exec_sign_cmd ;;
+        5) show_exec_self_sign_cmd ;;
+        6) create_pempf12 ;;
         9) exit 0 ;;
         *) echo -e "${RED}Invalid option.${NC}" ;;
     esac

@@ -1,7 +1,7 @@
 FROM python:3.9-slim
 
 # Install OpenSSL and necessary tools
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openssl net-tools && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
