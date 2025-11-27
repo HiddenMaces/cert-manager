@@ -304,10 +304,11 @@ while true; do
     echo -e "${CYAN}----------------------------------------------${NC}"
     echo -e "${RED}1. Create rootCA (if not exists) just once${NC}"
     echo -e "${CYAN}----------------------------------------------${NC}"
-    echo -e "2. Create RSA Key, CSR & V3 Ext File"
-    echo -e "3. Show (and execute) Root CA Signing Command"
-    echo -e "4. Show (and execute) a Self-Signed Signing Command"
-    echo -e "5. Create a pem and pf12 file"
+    echo -e "2. List all certificates"
+    echo -e "3. Create RSA Key, CSR & V3 Ext File"
+    echo -e "4. Show (and execute) Root CA Signing Command"
+    echo -e "5. Show (and execute) a Self-Signed Signing Command"
+    echo -e "6. Create a pem and pf12 file"
     echo -e "${CYAN}----------------------------------------------${NC}"
     echo -e "9. Exit\n"
     
@@ -315,8 +316,8 @@ while true; do
     read -r choice
 
     case $choice in
-        1) list_certificates ;;
-        2) create_rootca ;;
+        2) list_certificates ;;
+        1) create_rootca ;;
         3) create_csr ;;
         4) show_exec_sign_cmd ;;
         5) show_exec_self_sign_cmd ;;
