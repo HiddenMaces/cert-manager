@@ -8,7 +8,7 @@ app.secret_key = 'supersecretkey'  # Needed for flash messages
 
 CERT_DIR = "./certs"
 ROOT_DIR = "./rootCA"
-ROOT_CA_NAME = ""
+ROOT_CA_NAME = "rootca"
 
 # Ensure dirs exist
 os.makedirs(CERT_DIR, exist_ok=True)
@@ -28,7 +28,8 @@ def index():
     certs = [d for d in os.listdir(CERT_DIR) if os.path.isdir(os.path.join(CERT_DIR, d))]
     
     # Check if Root CA exists
-    root_exists = os.path.exists(os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.crt"))
+    #root_exists = os.path.exists(os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.crt"))
+    root_exists = os.listdir(ROOT_DIR)
     
     return render_template('index.html', certs=certs, root_exists=root_exists)
 

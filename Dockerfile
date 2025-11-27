@@ -8,8 +8,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-#COPY . .
-COPY templates/ .
+COPY . .
+COPY ./templates/ ./templates/
 COPY app.py .
 COPY cert-manager.sh .
 
