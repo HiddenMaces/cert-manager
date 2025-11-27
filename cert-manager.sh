@@ -292,6 +292,7 @@ list_certificates() {
 
     echo -e "${CYAN}--------------------------------${NC}"
     echo -e "$FQDN selected\n"
+    OUT_DIR="./certs/${FQDN}"
 }
 
 # --- Menu ---
