@@ -145,7 +145,7 @@ show_exec_sign_cmd() {
     echo ""
     echo -e "${RED}--- Choose N and then option -3- to use the Self-Sign command ---${NC}"
     # Added -extfile to include the SAN and KeyUsage requirements
-    SIGN_CMD="openssl x509 -req -in ${OUT_DIR}/${FQDN}.csr -CA ${ROOT_CA}/${ROOT_CA}.crt -CAkey ${ROOT_CA}/${ROOT_CA}.key -CAcreateserial -out ${OUT_DIR}/${FQDN}.crt -days 365 -sha256 -extfile ${OUT_DIR}/${FQDN}.v3.ext"
+    SIGN_CMD="openssl x509 -req -in ${OUT_DIR}/${FQDN}.csr -CA ${ROOT_DIR}/${ROOT_CA}.crt -CAkey ${ROOT_DIR}/${ROOT_CA}.key -CAcreateserial -out ${OUT_DIR}/${FQDN}.crt -days 365 -sha256 -extfile ${OUT_DIR}/${FQDN}.v3.ext"
     echo -e "\n${YELLOW}${SIGN_CMD}${NC}"
     echo ""
     echo -ne "${RED}Run the command (y/N):${NC} "
