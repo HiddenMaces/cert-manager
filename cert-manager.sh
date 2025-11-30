@@ -13,7 +13,7 @@ NC='\033[0m'
 
 CERT_DIR="./certs"
 ROOT_DIR="./rootCA"
-ROOT_CA="mischa_rootCA"
+ROOT_CA="internal_rootca"
 
 #Creating necessary directories
 mkdir -p ${CERT_DIR}
@@ -24,7 +24,7 @@ get_details() {
     echo -e "${CYAN}--- Certificate Details ---${NC}"
     if [[ -z "$FQDN" ]]; then read -p "Enter FQDN (Common Name) [e.g., www.example.com]: " FQDN; fi
 
-    OUT_DIR="./certs/${FQDN}"
+    OUT_DIR=".${CERT_DIR}/${FQDN}"
     # 1. Check if certificate exists
     if [[ -f "${OUT_DIR}/${FQDN}.crt" ]]; then
     	echo -ne "${RED}Certificate '${FQDN}' already exists. Do you want to continue? [y/N]:${NC} "
@@ -40,8 +40,8 @@ get_details() {
     
     if [[ -z "$COUNTRY" ]]; then read -e -i "NL" -p "Enter Country Code (2 letters) [e.g., US]: " COUNTRY; fi
     #if [[ -z "$STATE" ]]; then read -p "Enter State or Province [e.g., New York]: " STATE; fi
-    if [[ -z "$CITY" ]]; then read -e -i "Amersfoort" -p "Enter Locality/City [e.g., New York City]: " CITY; fi
-    if [[ -z "$ORG" ]]; then read -e -i "Hiddenmaces.nl" -p "Enter Organization Name [e.g., MyCompany Ltd]: " ORG; fi
+    if [[ -z "$CITY" ]]; then read -e -i "" -p "Enter Locality/City [e.g., Amsterdam]: " CITY; fi
+    if [[ -z "$ORG" ]]; then read -e -i "Internal" -p "Enter Organization Name [e.g., MyCompany Ltd]: " ORG; fi
     if [[ -z "$ORG_UNIT" ]]; then read -p "Enter Organizational Unit [e.g., IT Dept]: " ORG_UNIT; fi
 
     if [[ -z "$FQDN" || -z "$COUNTRY" ]]; then
@@ -100,7 +100,7 @@ echo -e "\n${YELLOW}You can now change the extensions for the certificate${NC}"
 #echo -e "\n${YELLOW}Just hit :wq or (ESC)ZZ to stop... ${NC}"
 read CRLF
 # possibility to add items to the extension file
-nano ${EXT_FILE}
+vi ${EXT_FILE}
 
 }
 
@@ -278,12 +278,23 @@ list_certificates() {
     # The syntax "${array[@]##*/}" removes everything up to the last '/' for every item.
     filenames=("${full_paths[@]##*/}")
 
-    # The select loop (uses the Clean Filenames)
+    # Display the instruction text before the list
+    echo "Available Certificates (Enter 0 to Go Back):"
     PS3="Select a cert number: "
     select file in "${filenames[@]}"; do
+        # Check if the user entered 0
+        if [[ "$REPLY" == "0" ]]; then
+            echo "Going back..."
+            FQDN="" # Optional: Ensure the variable is empty if they go back
+            break
+        fi
+        # Standard check for valid selection
         if [[ -n "$file" ]]; then
             # Store the clean filename in the variable
             FQDN="$file"
+            echo -e "${CYAN}--------------------------------${NC}"
+            echo -e "$FQDN selected\n"
+            OUT_DIR="${CERT_DIR}/${FQDN}"
             break
         else
             echo -e "${RED}Invalid selection. Try again.${NC}"
@@ -291,8 +302,7 @@ list_certificates() {
     done
 
     echo -e "${CYAN}--------------------------------${NC}"
-    echo -e "$FQDN selected\n"
-    OUT_DIR="./certs/${FQDN}"
+    echo -e "No certificate selected\nChoose -3- to create a certificate"
 }
 
 # --- Menu ---
@@ -317,8 +327,8 @@ while true; do
     read -r choice
 
     case $choice in
-        2) list_certificates ;;
         1) create_rootca ;;
+        2) list_certificates ;;
         3) create_csr ;;
         4) show_exec_sign_cmd ;;
         5) show_exec_self_sign_cmd ;;
