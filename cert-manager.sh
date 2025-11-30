@@ -53,7 +53,7 @@ get_root_details() {
     echo -e "${CYAN}--- RootCA Certificate Details ---${NC}"
     if [[ -z "$ROOT_CN" ]]; then read -e -i "My Internal rootCA" -p "Enter Description (used as Common Name) [My Internal rootCA]: " ROOT_CN; fi
     
-    OUT_DIR="${CERT_DIR}${ROOT_DIR}"
+    OUT_DIR="${ROOT_DIR}"
     # 1. Check if rootCA exists
     if [[ -f "${OUT_DIR}/${ROOT_CA}.crt" ]]; then
     	echo -ne "${RED}The rootCA env '${OUT_DIR}/${ROOT_CA}.crt' already exists. Do you want to continue? [y/N]:${NC} "
@@ -97,7 +97,7 @@ DNS.1 = ${FQDN}
 EOF
 
 echo -e "\n${YELLOW}You can now change the extensions for the certificate${NC}"
-#echo -e "\n${YELLOW}Just hit :wq or (ESC)ZZ to stop... ${NC}"
+echo -e "\n${YELLOW}Just hit :wq or (ESC)ZZ to stop... ${NC}"
 read CRLF
 # possibility to add items to the extension file
 vi ${EXT_FILE}
@@ -121,8 +121,6 @@ create_csr() {
     echo -e "${YELLOW}Generating CSR...${NC}"
     SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORG}/OU=${ORG_UNIT}/CN=${FQDN}"
     openssl req -new -key "$KEY_FILE" -out "$CSR_FILE" -subj "$SUBJECT"
-
-    
 
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Success!${NC}"
