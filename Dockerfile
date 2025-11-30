@@ -1,6 +1,8 @@
 FROM python:3.9-slim
 
-# Install OpenSSL and necessary tools
+RUN groupadd -g 1000 appgroup && \
+    useradd -u 1000 -g appgroup -m appuser
+
 RUN apt-get update && apt-get install -y openssl net-tools && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -15,6 +17,10 @@ COPY cert-manager.sh .
 
 # Ensure directories exist
 RUN mkdir -p certs rootCA
+RUN chown -R appuser:appgroup /app
+RUN chown +x ./cert-manager.sh
+
+USER 1000
 
 EXPOSE 5000
 
