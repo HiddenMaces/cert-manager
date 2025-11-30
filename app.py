@@ -2,13 +2,19 @@ import os
 import subprocess
 import shutil
 from flask import Flask, render_template, request, redirect, url_for, flash
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'  # Needed for flash messages
 
-CERT_DIR = "./certs"
-ROOT_DIR = "./rootCA"
-ROOT_CA_NAME = "rootca"
+# 2. Get variables from environment, with fallbacks (defaults)
+# syntax: os.getenv('VARIABLE_NAME', 'default_value_if_missing')
+app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
+
+CERT_DIR = os.getenv('CERT_DIR', './certs')
+ROOT_DIR = os.getenv('ROOT_DIR', './rootCA')
+ROOT_CA_NAME = os.getenv('ROOT_CA_NAME', 'rootca')
 
 # Ensure dirs exist
 os.makedirs(CERT_DIR, exist_ok=True)

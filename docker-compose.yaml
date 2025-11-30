@@ -5,6 +5,8 @@ services:
     build: .
     ports:
       - "5000:5000"
+    env_file:
+      - .env
     volumes:
       # Maps local folders to container folders so files persist locally
       - ./certs:/app/certs
