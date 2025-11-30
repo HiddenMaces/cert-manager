@@ -24,7 +24,7 @@ get_details() {
     echo -e "${CYAN}--- Certificate Details ---${NC}"
     if [[ -z "$FQDN" ]]; then read -p "Enter FQDN (Common Name) [e.g., www.example.com]: " FQDN; fi
 
-    OUT_DIR=".${CERT_DIR}/${FQDN}"
+    OUT_DIR="${CERT_DIR}/${FQDN}"
     # 1. Check if certificate exists
     if [[ -f "${OUT_DIR}/${FQDN}.crt" ]]; then
     	echo -ne "${RED}Certificate '${FQDN}' already exists. Do you want to continue? [y/N]:${NC} "
