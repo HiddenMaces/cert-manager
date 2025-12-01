@@ -10,4 +10,4 @@ services:
       - ./certs:/app/certs
       - ./rootCA:/app/rootCA
     environment:
-      - FLASK_ENV=development
+      - FLASK_ENV=production
