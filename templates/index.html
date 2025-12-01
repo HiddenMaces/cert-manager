@@ -10,7 +10,7 @@
                 <div class="flex items-center text-green-600 dark:text-green-400 mb-4">
                     <span class="text-2xl mr-2">✓</span> Active
                 </div>
-                <p class="text-sm text-gray-500">mischa_rootCA is ready to sign.</p>
+                <p class="text-sm text-gray-500">{{ ROOT_CA_NAME }} is ready to sign.</p>
             {% else %}
                 <p class="text-sm mb-4">No Root CA found.</p>
                 <form action="/create_root" method="POST">
