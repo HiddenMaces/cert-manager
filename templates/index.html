@@ -10,10 +10,25 @@
                 <div class="flex items-center text-green-600 dark:text-green-400 mb-4">
                     <span class="text-2xl mr-2">✓</span> Active
                 </div>
-                <p class="text-sm text-gray-500">Root Certificate Authority {{ ROOT_CA_NAME }} is ready to sign.</p>
+                <p class="text-sm text-gray-500 mb-4">Root {{ root_filename }} is ready to sign.</p>
+                
+                <a href="{{ url_for('download_root') }}" class="block text-center w-full bg-green-600 hover:bg-green-500 text-white py-2 rounded mb-4 transition">
+                    Download {{ root_filename }}
+                </a>
+
+                <details class="mt-4">
+                    <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-700">Advanced: Recreate Root CA</summary>
+                    <div class="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-100 dark:border-red-900">
+                        <p class="text-xs text-red-600 mb-2">Warning: Recreating the Root CA will invalidate all previously signed certificates.</p>
+                        <form action="/cert/create_root" method="POST">
+                            <input type="text" name="cn" placeholder="Common Name" class="w-full mb-2 p-2 text-sm rounded border dark:bg-s1-900 dark:border-s1-700" required>
+                            <button type="submit" class="w-full bg-red-500 hover:bg-red-400 text-white py-1 rounded text-sm transition">Recreate Root CA</button>
+                        </form>
+                    </div>
+                </details>
             {% else %}
                 <p class="text-sm mb-4">No Root CA found.</p>
-                <form action="/create_root" method="POST">
+                <form action="/cert/create_root" method="POST">
                     <input type="text" name="cn" placeholder="Common Name" class="w-full mb-2 p-2 rounded border dark:bg-s1-900 dark:border-s1-700" required>
                     <button type="submit" class="w-full bg-s1-500 hover:bg-s1-400 text-white py-2 rounded transition">Create Root CA</button>
                 </form>
@@ -23,7 +38,7 @@
         <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
             <h2 class="text-lg font-bold mb-4 text-s1-500 dark:text-s1-400">New Certificate</h2>
             <p class="text-sm mb-4 text-gray-500">Generate a new Private Key and CSR.</p>
-            <a href="/create" class="block text-center w-full border border-s1-500 text-s1-500 dark:text-s1-400 hover:bg-s1-500 hover:text-white py-2 rounded transition">Start Wizard</a>
+            <a href="/cert/create" class="block text-center w-full border border-s1-500 text-s1-500 dark:text-s1-400 hover:bg-s1-500 hover:text-white py-2 rounded transition">Start Wizard</a>
         </div>
     </div>
 
@@ -37,20 +52,32 @@
                 <thead class="bg-gray-50 dark:bg-s1-900">
                     <tr>
                         <th class="px-6 py-3 text-xs font-medium uppercase tracking-wider">FQDN</th>
+                        <th class="px-6 py-3 text-xs font-medium uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-xs font-medium uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 dark:divide-s1-700">
-                    {% for fqdn in certs %}
+                    {% for cert in certs %}
                     <tr class="hover:bg-gray-50 dark:hover:bg-s1-700 transition">
-                        <td class="px-6 py-4 font-medium">{{ fqdn }}</td>
+                        <td class="px-6 py-4 font-medium">{{ cert.fqdn }}</td>
                         <td class="px-6 py-4">
-                            <a href="/manage/{{ fqdn }}" class="text-s1-500 hover:text-s1-400 font-semibold mr-4">Manage</a>
+                            {% if cert.status == 'green' %}
+                                <span class="px-2 py-1 text-xs rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Trusted (Root)</span>
+                            {% elif cert.status == 'blue' %}
+                                <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Self-Signed</span>
+                            {% elif cert.status == 'red' %}
+                                <span class="px-2 py-1 text-xs rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Unknown/Mismatch</span>
+                            {% else %}
+                                <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <a href="/cert/manage/{{ cert.fqdn }}" class="text-s1-500 hover:text-s1-400 font-semibold mr-4">Manage</a>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="2" class="px-6 py-8 text-center text-gray-500">No certificates found. Create one to get started.</td>
+                        <td colspan="3" class="px-6 py-8 text-center text-gray-500">No certificates found. Create one to get started.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

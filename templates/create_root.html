@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white dark:bg-s1-800 rounded-lg shadow p-8 border dark:border-s1-700">
+    <h1 class="text-2xl font-bold mb-6">Create Root Certificate Authority</h1>
+    
+    <div class="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 rounded border border-yellow-200 dark:border-yellow-800 text-sm">
+        <p class="font-bold">Warning:</p>
+        <p>Creating a new Root CA will overwrite any existing one. All certificates signed by the previous Root CA will become invalid.</p>
+    </div>
+    
+    <form method="POST" class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium mb-1">Root CA Common Name</label>
+            <input type="text" name="cn" placeholder="My Internal Root CA" value="My Internal Root CA" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" required>
+            <p class="text-xs text-gray-500 mt-1">This is the name that will appear in your trusted store.</p>
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Country (2 Letter Code)</label>
+            <input type="text" name="c" value="NL" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" maxlength="2" required>
+        </div>
+
+        <div class="pt-4 flex justify-end space-x-3">
+            <a href="/" class="px-4 py-2 rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-s1-700">Cancel</a>
+            <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded shadow">Generate New Root CA</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
