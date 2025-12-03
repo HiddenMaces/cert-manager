@@ -1,4 +1,4 @@
-### Cert-manager
+# Cert-manager
 A lightweight, web-based interface for managing a private Public Key Infrastructure (PKI). This application allows you to create a Root CA, generate Certificate Signing Requests (CSRs), and sign certificates for your internal development or testing environments without needing to memorize complex OpenSSL commands.
 
 ## Features
@@ -13,6 +13,7 @@ A lightweight, web-based interface for managing a private Public Key Infrastruct
   * **Pure Python:** Uses the `cryptography` library, eliminating dependencies on system-level shell commands.
 
 ## Layout
+```
 cert-manager/
 ├── certs/              # (Empty, will be mapped to Docker)
 ├── rootCA/             # (Empty, will be mapped to Docker)
@@ -25,7 +26,7 @@ cert-manager/
 ├── Dockerfile          
 ├── docker-compose.yml
 └── requirements.txt    # requirements for app.py
-
+```
 
 ## Requirements
 
@@ -55,71 +56,53 @@ The application requires the following libraries, these will be installed during
 To run this application in Docker, use the following steps.
 
 **Clone the repository** (or download the files):
+```bash
+git clone https://github.com/HiddenMaces/cert-manager.git
+cd cert-manager
+```
 
-    ```bash
-    git clone https://github.com/HiddenMaces/cert-manager.git
-    cd cert-manager
-    ```
-
-** create .env
+**create .env**
 ```bash
 cp .env-sample .env
 ```
 
 **Run Command:**
-
 ```bash
 docker build -t cert-manager:latest .
 docker compose up -d
 ```
 
-## Local Installation
-
-1.  **Clone the repository** (or download the files):
-
-    ```bash
-    git clone https://github.com/HiddenMaces/cert-manager.git
-    cd cert-manager
-    ```
-
-2.  **Create a virtual environment (Optional but recommended):**
-
-    ```bash
-    python -m venv venv
-    # On Windows:
-    venv\Scripts\activate
-    # On Mac/Linux:
-    source venv/bin/activate
-    ```
-
-3.  **Install dependencies:**
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-## Usage
-
-1.  **Start the Application:**
-
-    ```bash
-    python app.py
-    ```
-
-2.  **Access the Interface:**
-    Open your web browser and navigate to: `http://localhost:5000`
+**Access the Interface:**
+Open your web browser and navigate to: `http://localhost:5000`
 
 ### Workflow
 
 1.  **Create Root CA:**
       * On the home page, if no Root CA exists, use the form to create one. Provide a Common Name (CN) and Country Code.
+      * Download .crt file
+        
+      When you created the root certificate, don't forget to download the .crt file and import it to your systems as a 'Trusted Root Authority' on the computer account.
+      This will make sure any user and application (even running under SYSTEM etc.) will trust your certificates.
 2.  **Create a Certificate:**
       * Go to **"Create New Cert"**.
       * Enter the FQDN (e.g., `myserver.local`) and organization details.
       * This generates a Key and a CSR.
 3.  **Manage & Sign:**
       * Click **"Manage"** next to the newly created certificate.
-      * **Edit Extensions:** If you need specific Subject Alternative Names (DNS or IP), edit the text box (e.g., `DNS.1 = othername.local`, `IP.1 = 1.2.3.4`).
+      * **Edit Extensions:** If you need specific Subject Alternative Names (DNS or IP), edit the text box, add DNS and/or IP if applicable.
+      * Example extension file:
+        ``` text
+        authorityKeyIdentifier=keyid,issuer
+        basicConstraints=CA:FALSE
+        keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+        extendedKeyUsage = serverAuth
+        subjectAltName = @alt_names (mandatory)
+        [alt_names]
+        DNS.1 = fqdn (mandatory for modern browser)
+        DNS.2 = fqdn2 (optional)
+        IP.1 = 192.168.1.10 (optional)
+        IP.2 = x.x.x.x (optional)
+        ```
       * **Sign:** Choose **"Sign with Root CA"** (recommended) or **"Self-Sign"**.
 4.  **Export:**
       * Once signed, you can generate a `.p12` file by entering a password and clicking **"Create P12"**.
