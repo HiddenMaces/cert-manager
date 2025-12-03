@@ -1,7 +1,7 @@
-version: '3.8'
-
 services:
   cert-manager:
+    container_name: cert-manager
+    image: cert-manager
     build: .
     ports:
       - "5000:5000"
@@ -12,4 +12,4 @@ services:
       - ./certs:/app/certs
       - ./rootCA:/app/rootCA
     environment:
-      - FLASK_ENV=development
+      - FLASK_ENV=production
