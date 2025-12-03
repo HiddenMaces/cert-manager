@@ -2,7 +2,7 @@ import os
 import shutil
 import datetime
 import ipaddress
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 from dotenv import load_dotenv
 
 # Cryptography imports
@@ -59,13 +59,11 @@ def load_csr(path):
 def get_sans_from_ext_content(content):
     """
     Parses the user-editable text content to extract DNS and IP SANs.
-    Look for lines under [alt_names] like DNS.1 = example.com
     """
     sans = []
     lines = content.splitlines()
     for line in lines:
         line = line.strip()
-        # Simple parsing logic to mimic OpenSSL config reading
         if line.upper().startswith("DNS"):
             parts = line.split('=')
             if len(parts) > 1:
@@ -77,28 +75,90 @@ def get_sans_from_ext_content(content):
                     ip = ipaddress.ip_address(parts[1].strip())
                     sans.append(x509.IPAddress(ip))
                 except ValueError:
-                    pass # Invalid IP, skip
+                    pass 
     return sans
 
 # --- Routes ---
 
 @app.route('/')
-def index():
-    certs = [d for d in os.listdir(CERT_DIR) if os.path.isdir(os.path.join(CERT_DIR, d))]
-    root_exists = os.path.exists(os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.crt"))
-    return render_template('index.html', certs=certs, root_exists=root_exists)
+def home_redirect():
+    return redirect(url_for('index'))
 
-@app.route('/create_root', methods=['POST'])
+@app.route('/cert/')
+def index():
+    # 1. Get List of Cert Folders
+    cert_dirs = [d for d in os.listdir(CERT_DIR) if os.path.isdir(os.path.join(CERT_DIR, d))]
+    
+    # 2. Check Root CA
+    root_crt_path = os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.crt")
+    root_exists = os.path.exists(root_crt_path)
+    
+    root_subject = None
+    if root_exists:
+        try:
+            root_cert_obj = load_cert(root_crt_path)
+            root_subject = root_cert_obj.subject
+        except:
+            pass # Handle corrupted root cert gracefully
+
+    # 3. Analyze Certificates for Status Colors
+    # Green: Signed by active Root
+    # Blue: Self-Signed
+    # Red: Signed by unknown/mismatch
+    
+    analyzed_certs = []
+    
+    for fqdn in cert_dirs:
+        crt_path = os.path.join(CERT_DIR, fqdn, f"{fqdn}.crt")
+        status = "pending" # Default if no CRT exists
+        
+        if os.path.exists(crt_path):
+            try:
+                cert_obj = load_cert(crt_path)
+                issuer = cert_obj.issuer
+                subject = cert_obj.subject
+                
+                if issuer == subject:
+                    status = "blue" # Self-signed
+                elif root_subject and issuer == root_subject:
+                    status = "green" # Signed by OUR Root
+                else:
+                    status = "red" # Signed by unknown
+            except Exception:
+                status = "error" # Corrupt file
+        
+        analyzed_certs.append({
+            'fqdn': fqdn,
+            'status': status
+        })
+
+    return render_template('index.html', 
+                           certs=analyzed_certs, 
+                           root_exists=root_exists, 
+                           root_filename=f"{ROOT_CA_NAME}.crt")
+
+@app.route('/cert/download_root')
+def download_root():
+    return send_from_directory(ROOT_DIR, f"{ROOT_CA_NAME}.crt", as_attachment=True)
+
+@app.route('/create_root', methods=['GET', 'POST'])
 def create_root():
+    # Handle GET request: Show the form
+    if request.method == 'GET':
+        return render_template('create_root.html')
+
+    # Handle POST request: Process the form
     cn = request.form.get('cn', 'My Internal rootCA')
     c = request.form.get('c', 'NL')
     
     key_file = os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.key")
     crt_file = os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.crt")
 
-    if os.path.exists(crt_file):
-        flash('Root CA already exists!', 'error')
-        return redirect(url_for('index'))
+    # (Optional) Remove the exists check if you want to allow overwriting, 
+    # or keep it and handle the error as you prefer.
+    # if os.path.exists(crt_file):
+    #     flash('Root CA already exists!', 'error')
+    #     return redirect(url_for('index'))
 
     try:
         # 1. Generate Private Key
@@ -145,7 +205,7 @@ def create_root():
         
     return redirect(url_for('index'))
 
-@app.route('/create', methods=['GET', 'POST'])
+@app.route('/cert/create', methods=['GET', 'POST'])
 def create_cert():
     if request.method == 'POST':
         fqdn = request.form['fqdn']
@@ -165,7 +225,7 @@ def create_cert():
         ext_file = os.path.join(cert_path, f"{fqdn}.v3.ext")
 
         try:
-            # 1. Create EXT file (kept for UI consistency and SAN parsing later)
+            # 1. Create EXT file
             ext_content = f"""authorityKeyIdentifier=keyid,issuer
 basicConstraints=CA:FALSE
 keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
@@ -196,7 +256,6 @@ DNS.1 = {fqdn}
                 .sign(private_key, hashes.SHA256())
             )
             
-            # Save CSR
             with open(csr_file, "wb") as f:
                 f.write(csr.public_bytes(serialization.Encoding.PEM))
 
@@ -209,7 +268,7 @@ DNS.1 = {fqdn}
 
     return render_template('create.html')
 
-@app.route('/manage/<fqdn>')
+@app.route('/cert/manage/<fqdn>')
 def manage_cert(fqdn):
     cert_path = os.path.join(CERT_DIR, fqdn)
     ext_file = os.path.join(cert_path, f"{fqdn}.v3.ext")
@@ -224,7 +283,7 @@ def manage_cert(fqdn):
 
     return render_template('manage.html', fqdn=fqdn, ext_content=ext_content, has_crt=has_crt, has_p12=has_p12)
 
-@app.route('/update_ext/<fqdn>', methods=['POST'])
+@app.route('/cert/update_ext/<fqdn>', methods=['POST'])
 def update_ext(fqdn):
     content = request.form['ext_content']
     ext_file = os.path.join(CERT_DIR, fqdn, f"{fqdn}.v3.ext")
@@ -233,7 +292,7 @@ def update_ext(fqdn):
     flash('Extension file updated.', 'success')
     return redirect(url_for('manage_cert', fqdn=fqdn))
 
-@app.route('/sign_root/<fqdn>')
+@app.route('/cert/sign_root/<fqdn>')
 def sign_root(fqdn):
     cert_path = os.path.join(CERT_DIR, fqdn)
     csr_path = os.path.join(cert_path, f"{fqdn}.csr")
@@ -248,7 +307,6 @@ def sign_root(fqdn):
         ca_cert = load_cert(ca_crt_path)
         ca_key = load_key(ca_key_path)
 
-        # Build Certificate from CSR
         builder = x509.CertificateBuilder()
         builder = builder.subject_name(csr.subject)
         builder = builder.issuer_name(ca_cert.subject)
@@ -257,8 +315,6 @@ def sign_root(fqdn):
         builder = builder.not_valid_before(datetime.datetime.now(datetime.timezone.utc))
         builder = builder.not_valid_after(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365))
 
-        # Add Extensions
-        # 1. Basic Constraints & Key Usage (Standard for Server Certs)
         builder = builder.add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
         builder = builder.add_extension(x509.KeyUsage(
             digital_signature=True, content_commitment=False, key_encipherment=True,
@@ -267,19 +323,15 @@ def sign_root(fqdn):
         ), critical=True)
         builder = builder.add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]), critical=False)
         
-        # 2. Authority Key Identifier (Links to CA)
         builder = builder.add_extension(
             x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()), 
             critical=False
         )
-
-        # 3. Subject Key Identifier
         builder = builder.add_extension(
             x509.SubjectKeyIdentifier.from_public_key(csr.public_key()), 
             critical=False
         )
 
-        # 4. Parse user provided text file for SANs
         if os.path.exists(ext_path):
             with open(ext_path, 'r') as f:
                 content = f.read()
@@ -287,7 +339,6 @@ def sign_root(fqdn):
             if sans:
                 builder = builder.add_extension(x509.SubjectAlternativeName(sans), critical=False)
 
-        # Sign
         cert = builder.sign(ca_key, hashes.SHA256())
         save_cert(cert, crt_path)
         
@@ -297,7 +348,7 @@ def sign_root(fqdn):
     
     return redirect(url_for('manage_cert', fqdn=fqdn))
 
-@app.route('/sign_self/<fqdn>')
+@app.route('/cert/sign_self/<fqdn>')
 def sign_self(fqdn):
     cert_path = os.path.join(CERT_DIR, fqdn)
     csr_path = os.path.join(cert_path, f"{fqdn}.csr")
@@ -311,13 +362,12 @@ def sign_self(fqdn):
 
         builder = x509.CertificateBuilder()
         builder = builder.subject_name(csr.subject)
-        builder = builder.issuer_name(csr.subject) # Self signed: Issuer == Subject
+        builder = builder.issuer_name(csr.subject) # Self signed
         builder = builder.public_key(csr.public_key())
         builder = builder.serial_number(x509.random_serial_number())
         builder = builder.not_valid_before(datetime.datetime.now(datetime.timezone.utc))
         builder = builder.not_valid_after(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365))
 
-        # Standard Extensions
         builder = builder.add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
         builder = builder.add_extension(x509.KeyUsage(
             digital_signature=True, content_commitment=False, key_encipherment=True,
@@ -330,7 +380,6 @@ def sign_self(fqdn):
             critical=False
         )
 
-        # Parse user provided text file for SANs
         if os.path.exists(ext_path):
             with open(ext_path, 'r') as f:
                 content = f.read()
@@ -347,7 +396,7 @@ def sign_self(fqdn):
     
     return redirect(url_for('manage_cert', fqdn=fqdn))
 
-@app.route('/create_p12/<fqdn>', methods=['POST'])
+@app.route('/cert/create_p12/<fqdn>', methods=['POST'])
 def create_p12(fqdn):
     password = request.form.get('password', '')
     cert_path = os.path.join(CERT_DIR, fqdn)
@@ -359,7 +408,6 @@ def create_p12(fqdn):
         private_key = load_key(key_path)
         cert = load_cert(crt_path)
 
-        # Serialize to P12
         p12 = pkcs12.serialize_key_and_certificates(
             name=fqdn.encode('utf-8'),
             key=private_key,
@@ -377,7 +425,7 @@ def create_p12(fqdn):
         
     return redirect(url_for('manage_cert', fqdn=fqdn))
 
-@app.route('/delete/<fqdn>')
+@app.route('/cert/delete/<fqdn>')
 def delete_cert(fqdn):
     cert_path = os.path.join(CERT_DIR, fqdn)
     try:
