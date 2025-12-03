@@ -13,12 +13,11 @@ RUN pip install -r requirements.txt
 COPY . .
 COPY ./templates/ ./templates/
 COPY app.py .
-COPY cert-manager.sh .
+COPY --chmod=0755 cert-manager.sh .
 
 # Ensure directories exist
 RUN mkdir -p certs rootCA
 RUN chown -R appuser:appgroup /app
-RUN chown +x ./cert-manager.sh
 
 USER 1000
 
