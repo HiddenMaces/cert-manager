@@ -292,8 +292,15 @@ def update_ext(fqdn):
     flash('Extension file updated.', 'success')
     return redirect(url_for('manage_cert', fqdn=fqdn))
 
-@app.route('/cert/sign_root/<fqdn>')
+@app.route('/cert/sign_root/<fqdn>', methods=['GET', 'POST'])
 def sign_root(fqdn):
+    # 1. Handle GET: Show Password Form
+    if request.method == 'GET':
+        return render_template('enter_password.html', fqdn=fqdn)
+
+    # 2. Handle POST: Perform Signing
+    password = request.form.get('password')
+    
     cert_path = os.path.join(CERT_DIR, fqdn)
     csr_path = os.path.join(cert_path, f"{fqdn}.csr")
     crt_path = os.path.join(cert_path, f"{fqdn}.crt")
@@ -305,7 +312,9 @@ def sign_root(fqdn):
     try:
         csr = load_csr(csr_path)
         ca_cert = load_cert(ca_crt_path)
-        ca_key = load_key(ca_key_path)
+        
+        # Load Root Key using the provided password
+        ca_key = load_key(ca_key_path, password=password)
 
         builder = x509.CertificateBuilder()
         builder = builder.subject_name(csr.subject)
@@ -315,6 +324,7 @@ def sign_root(fqdn):
         builder = builder.not_valid_before(datetime.datetime.now(datetime.timezone.utc))
         builder = builder.not_valid_after(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365))
 
+        # Standard Extensions
         builder = builder.add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
         builder = builder.add_extension(x509.KeyUsage(
             digital_signature=True, content_commitment=False, key_encipherment=True,
@@ -343,6 +353,9 @@ def sign_root(fqdn):
         save_cert(cert, crt_path)
         
         flash('Signed by Root CA successfully.', 'success')
+    except ValueError:
+        flash('Incorrect Password for Root CA Key.', 'error')
+        return redirect(url_for('sign_root', fqdn=fqdn))
     except Exception as e:
         flash(f'Signing failed: {str(e)}', 'error')
     
