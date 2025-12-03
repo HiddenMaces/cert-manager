@@ -143,7 +143,7 @@ def index():
 def download_root():
     return send_from_directory(ROOT_DIR, f"{ROOT_CA_NAME}.crt", as_attachment=True)
 
-@app.route('/create_root', methods=['GET', 'POST'])
+@app.route('/cert/create_root', methods=['GET', 'POST'])
 def create_root():
     # Handle GET request: Show the form
     if request.method == 'GET':
