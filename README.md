@@ -30,7 +30,7 @@ cert-manager/
 
 ## Requirements
 
-  * **Docker**
+  * **Docker** :)
 
 ## Configuration
 
