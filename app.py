@@ -36,10 +36,12 @@ def save_key(key, path):
             encryption_algorithm=serialization.NoEncryption()
         ))
 
-def load_key(path):
+def load_key(path, password=None):
     """Loads a private key from disk."""
     with open(path, "rb") as f:
-        return serialization.load_pem_private_key(f.read(), password=None)
+        # Encode password to bytes if provided
+        pwd_bytes = password.encode('utf-8') if password else None
+        return serialization.load_pem_private_key(f.read(), password=pwd_bytes)
 
 def save_cert(cert, path):
     """Saves a certificate to disk."""
@@ -292,15 +294,11 @@ def update_ext(fqdn):
     flash('Extension file updated.', 'success')
     return redirect(url_for('manage_cert', fqdn=fqdn))
 
-@app.route('/cert/sign_root/<fqdn>', methods=['GET', 'POST'])
+@app.route('/cert/sign_root/<fqdn>', methods=['POST'])
 def sign_root(fqdn):
-    # 1. Handle GET: Show Password Form
-    if request.method == 'GET':
-        return render_template('enter_password.html', fqdn=fqdn)
-
-    # 2. Handle POST: Perform Signing
+    # Get password from the Modal form
     password = request.form.get('password')
-    
+
     cert_path = os.path.join(CERT_DIR, fqdn)
     csr_path = os.path.join(cert_path, f"{fqdn}.csr")
     crt_path = os.path.join(cert_path, f"{fqdn}.crt")
@@ -353,9 +351,10 @@ def sign_root(fqdn):
         save_cert(cert, crt_path)
         
         flash('Signed by Root CA successfully.', 'success')
+
     except ValueError:
+        # Cryptography library raises ValueError on incorrect password
         flash('Incorrect Password for Root CA Key.', 'error')
-        return redirect(url_for('sign_root', fqdn=fqdn))
     except Exception as e:
         flash(f'Signing failed: {str(e)}', 'error')
     
