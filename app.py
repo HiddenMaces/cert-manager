@@ -185,7 +185,8 @@ def create_root():
             public_exponent=65537,
             key_size=4096,
         )
-
+        save_key(private_key, key_file)
+        
         # 3. Build the Subject Name dynamically
         # We only add attributes if they actually contain text
         name_attributes = [x509.NameAttribute(NameOID.COMMON_NAME, cn)]
