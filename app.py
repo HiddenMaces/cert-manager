@@ -158,7 +158,8 @@ def create_root():
     org_unit = request.form.get('org_unit', '').strip()
     st = request.form.get('st', '').strip()
     city = request.form.get('city', '').strip()
-    password = bytes(request.form.get('password', '').strip())
+    temppassword = request.form.get('password', '').strip()
+    password = temppassword.encode('utf-8')
         
     key_file = os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.key")
     crt_file = os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.crt")
