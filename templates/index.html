@@ -28,7 +28,7 @@
                 </details>
             {% else %}
                 <p class="text-sm mb-4">No Root CA found.</p>
-                <form action="/cert/create_root" method="POST">
+                <form action="/cert/create_root" method="GET">
                     <input type="text" name="cn" placeholder="Common Name" class="w-full mb-2 p-2 rounded border dark:bg-s1-900 dark:border-s1-700" required>
                     <button type="submit" class="w-full bg-s1-500 hover:bg-s1-400 text-white py-2 rounded transition">Create Root CA</button>
                 </form>
