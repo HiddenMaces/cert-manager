@@ -69,7 +69,7 @@
         
         <form action="{{ url_for('sign_root', fqdn=fqdn) }}" method="POST">
             <label class="block text-xs uppercase font-bold text-gray-500 mb-1">Password</label>
-            <input type="password" name="password" class="w-full p-2 mb-6 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white focus:ring-2 focus:ring-s1-500 outline-none" required autofocus>
+            <input type="password" name="password" class="w-full p-2 mb-6 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white focus:ring-2 focus:ring-s1-500 outline-none" autofocus>
             
             <div class="flex justify-end space-x-3">
                 <button type="button" onclick="document.getElementById('passwordModal').classList.add('hidden')" class="px-4 py-2 rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-s1-700 text-gray-700 dark:text-gray-300 transition">Cancel</button>

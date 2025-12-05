@@ -10,15 +10,38 @@
     
     <form method="POST" class="space-y-4">
         <div>
-            <label class="block text-sm font-medium mb-1">Root CA Common Name</label>
+            <label class="block text-sm font-medium mb-1">Root CA Common Name (required)</label>
             <input type="text" name="cn" placeholder="My Internal Root CA" value="My Internal Root CA" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" required>
             <p class="text-xs text-gray-500 mt-1">This is the name that will appear in your trusted store.</p>
         </div>
         <div>
-            <label class="block text-sm font-medium mb-1">Country (2 Letter Code)</label>
+            <label class="block text-sm font-medium mb-1">Country in 2 Letter Code (required)</label>
             <input type="text" name="c" value="NL" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" maxlength="2" required>
         </div>
-
+        <div>
+            <label class="block text-sm font-medium mb-1">Validaty in days (default 10 years)</label>
+            <input type="text" name="days" value="3650" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" maxlength="2" required>
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Contact Email address (optional)</label>
+            <input type="text" name="email" value="" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" maxlength="20">
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Organization (optional)</label>
+            <input type="text" name="org" value="" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" maxlength="25">
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Organizational Unit (OU) (optional)</label>
+            <input type="text" name="org_unit" value="" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" maxlength="15">
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">State/Province (optional)</label>
+            <input type="text" name="st" value="" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" maxlength="10">
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">City or Town Name (optional)</label>
+            <input type="text" name="city" value="" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" maxlength="15">
+        </div>
         <div class="pt-4 flex justify-end space-x-3">
             <a href="/" class="px-4 py-2 rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-s1-700">Cancel</a>
             <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded shadow">Generate New Root CA</button>

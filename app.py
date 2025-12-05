@@ -150,8 +150,14 @@ def create_root():
         return render_template('create_root.html')
 
     # Handle POST request: Process the form
-    cn = request.form.get('cn', 'My Internal rootCA')
-    c = request.form.get('c', 'NL')
+    cn = request.form.get('cn', 'My Internal rootCA').strip()
+    c = request.form.get('c', 'NL').strip()
+    days = int(request.form.get('days', '3650')) # Ensure this is an integer
+    email = request.form.get('email', '').strip()
+    org = request.form.get('org', '').strip()
+    org_unit = request.form.get('org_unit', '').strip()
+    st = request.form.get('st', '').strip()
+    city = request.form.get('city', '').strip()
     
     key_file = os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.key")
     crt_file = os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.crt")
@@ -163,41 +169,71 @@ def create_root():
     #     return redirect(url_for('index'))
 
     try:
-        # 1. Generate Private Key
-        private_key = rsa.generate_private_key(public_exponent=65537, key_size=4096)
-        save_key(private_key, key_file)
+        # 1. Capture and clean inputs
+        # We strip() to ensure no accidental whitespace makes it into the cert
+        cn = request.form.get('cn', 'My Internal rootCA').strip()
+        c = request.form.get('c', 'NL').strip()
+        days = int(request.form.get('days', '3650')) # Ensure this is an integer
+        email = request.form.get('email', '').strip()
+        org = request.form.get('org', '').strip()
+        org_unit = request.form.get('org_unit', '').strip()
+        st = request.form.get('st', '').strip()
+        city = request.form.get('city', '').strip()
 
-        # 2. Build Subject/Issuer (Self-signed)
-        subject = x509.Name([
-            x509.NameAttribute(NameOID.COUNTRY_NAME, c),
-            x509.NameAttribute(NameOID.COMMON_NAME, cn),
-        ])
-
-        # 3. Build Certificate
-        cert = (
-            x509.CertificateBuilder()
-            .subject_name(subject)
-            .issuer_name(subject) # Self-signed
-            .public_key(private_key.public_key())
-            .serial_number(x509.random_serial_number())
-            .not_valid_before(datetime.datetime.now(datetime.timezone.utc))
-            .not_valid_after(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=3650))
-            # Root CA Extensions
-            .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
-            .add_extension(x509.KeyUsage(
-                digital_signature=True,
-                content_commitment=False,
-                key_encipherment=False,
-                data_encipherment=False,
-                key_agreement=False,
-                key_cert_sign=True, # Critical for CA
-                crl_sign=True,      # Critical for CA
-                encipher_only=False,
-                decipher_only=False
-            ), critical=True)
-            .add_extension(x509.SubjectKeyIdentifier.from_public_key(private_key.public_key()), critical=False)
-            .sign(private_key, hashes.SHA256())
+        # 2. Generate Private Key
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=4096,
         )
+
+        # 3. Build the Subject Name dynamically
+        # We only add attributes if they actually contain text
+        name_attributes = [x509.NameAttribute(NameOID.COMMON_NAME, cn)]
+        name_attributes.append(x509.NameAttribute(NameOID.COUNTRY_NAME, c))
+        if st: name_attributes.append(x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, st))
+        if city: name_attributes.append(x509.NameAttribute(NameOID.LOCALITY_NAME, city))
+        if org: name_attributes.append(x509.NameAttribute(NameOID.ORGANIZATION_NAME, org))
+        if org_unit: name_attributes.append(x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, org_unit))
+        if email: name_attributes.append(x509.NameAttribute(NameOID.EMAIL_ADDRESS, email))
+
+        subject = x509.Name(name_attributes)
+
+        # 4. Create the Certificate Builder
+        builder = x509.CertificateBuilder()
+        
+        # Since this is a Self-Signed Root CA, Subject and Issuer are the same
+        builder = builder.subject_name(subject)
+        builder = builder.issuer_name(subject)
+        
+        builder = builder.public_key(private_key.public_key())
+        builder = builder.serial_number(x509.random_serial_number())
+        builder = builder.not_valid_before(datetime.datetime.utcnow())
+        builder = builder.not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=days))
+
+        # 5. Add Extensions
+        # CA=True is critical if you intend to use this to sign other certs
+        builder = builder.add_extension(
+            x509.BasicConstraints(ca=True, path_length=None), critical=True,
+        )
+        
+        # Subject Key Identifier (Recommended for CAs)
+        builder = builder.add_extension(
+            x509.SubjectKeyIdentifier.from_public_key(private_key.public_key()),
+            critical=False,
+        )
+
+        # 6. Sign the Certificate
+        cert = builder.sign(
+            private_key=private_key, algorithm=hashes.SHA256()
+        )
+
+        # 7. Serialize to PEM format (to return strings)
+        #cert_pem = certificate.public_bytes(serialization.Encoding.PEM)
+        #key_pem = private_key.private_bytes(
+        #    encoding=serialization.Encoding.PEM,
+        #    format=serialization.PrivateFormat.TraditionalOpenSSL,
+        #   encryption_algorithm=serialization.NoEncryption()
+        #)
 
         save_cert(cert, crt_file)
         flash('Root CA created successfully.', 'success')
