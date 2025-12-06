@@ -7,7 +7,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-RUN mkdir -p certs rootCA &&
+RUN mkdir -p certs rootCA
 
 COPY . .
 COPY --chmod=0755 cert-manager.sh .

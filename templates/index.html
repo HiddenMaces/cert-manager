@@ -20,7 +20,7 @@
                     <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-700">Advanced: Recreate Root CA</summary>
                     <div class="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-100 dark:border-red-900">
                         <p class="text-xs text-red-600 mb-2">Warning: Recreating the Root CA will invalidate all previously signed certificates.</p>
-                        <form action="/cert/create_root" method="POST">
+                        <form action="/cert/create_root" method="GET">
                             <input type="text" name="cn" placeholder="Common Name" class="w-full mb-2 p-2 text-sm rounded border dark:bg-s1-900 dark:border-s1-700" required>
                             <button type="submit" class="w-full bg-red-500 hover:bg-red-400 text-white py-1 rounded text-sm transition">Recreate Root CA</button>
                         </form>
