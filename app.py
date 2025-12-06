@@ -158,8 +158,7 @@ def create_root():
     org_unit = request.form.get('org_unit', '').strip()
     st = request.form.get('st', '').strip()
     city = request.form.get('city', '').strip()
-    temppassword = request.form.get('password', '').strip()
-    password = temppassword.encode('utf-8')
+    password = request.form.get('password', '').strip()
         
     key_file = os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.key")
     crt_file = os.path.join(ROOT_DIR, f"{ROOT_CA_NAME}.crt")
@@ -187,13 +186,20 @@ def create_root():
             public_exponent=65537,
             key_size=4096,
         )
-        pem_encrypted_key = private_key.private_bytes(
+        # when no password is given, save in plain
+        if password:
+            algorithm = serialization.BestAvailableEncryption(password.encode('utf-8'))    
+        else:
+            algorithm = serialization.NoEncryption()
+
+        pem_key = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.BestAvailableEncryption(password)
+        encryption_algorithm=algorithm
         )
+        
         with open(key_file, "wb") as f:
-            f.write(pem_encrypted_key)
+            f.write(pem_key)
 
         # 3. Build the Subject Name dynamically
         # We only add attributes if they actually contain text
