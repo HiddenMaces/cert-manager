@@ -10,8 +10,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-RUN mkdir -p certs rootCA && \
-    chown -R appuser:appgroup certs rootCA
+#RUN mkdir -p certs rootCA && \
+#   chown -R appuser:appgroup certs rootCA
 
 COPY --chown=appuser:appgroup . .
 COPY --chown=appuser:appgroup --chmod=0755 cert-manager.sh .
