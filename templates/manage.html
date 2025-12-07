@@ -3,16 +3,47 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     
     <div class="lg:col-span-2 space-y-6">
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center pb-4 border-b dark:border-s1-700">
             <h1 class="text-2xl font-bold">{{ fqdn }}</h1>
-            <a href="/cert/delete/{{ fqdn }}" onclick="return confirm('Are you sure? This deletes all files for this cert.')" class="text-red-500 hover:text-red-400 text-sm">Delete Certificate</a>
+            <a href="/cert/delete/{{ fqdn }}" onclick="return confirm('Are you sure? This deletes the entire directory for this certificate.')" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded shadow transition">
+                Delete Certificate
+            </a>
+        </div>
+
+        <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
+            <h3 class="text-lg font-bold mb-4">Certificate Details</h3>
+            <p class="text-xs text-gray-500 mb-4">Modify the parameters below to regenerate the CSR. <br><span class="text-red-500">Note: Changing the FQDN will rename the certificate directory and files.</span></p>
+            
+            <form action="/cert/update_details/{{ fqdn }}" method="POST" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs uppercase font-bold text-gray-500 mb-1">Common Name (FQDN)</label>
+                        <input type="text" name="cn" value="{{ csr.cn }}" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase font-bold text-gray-500 mb-1">Country (2 Letter)</label>
+                        <input type="text" name="c" value="{{ csr.c }}" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" maxlength="2">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase font-bold text-gray-500 mb-1">Organization</label>
+                        <input type="text" name="o" value="{{ csr.o }}" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase font-bold text-gray-500 mb-1">Org Unit (OU)</label>
+                        <input type="text" name="ou" value="{{ csr.ou }}" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white">
+                    </div>
+                </div>
+                <div class="text-right mt-2">
+                    <button type="submit" class="px-3 py-1 bg-s1-500 hover:bg-s1-400 text-white text-sm rounded transition">Update Details & CSR</button>
+                </div>
+            </form>
         </div>
 
         <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
             <h3 class="text-lg font-bold mb-2">Extension File (v3.ext)</h3>
             <p class="text-xs text-gray-500 mb-2">Edit this to add Subject Alternative Names (SANs) before signing.</p>
             <form action="/cert/update_ext/{{ fqdn }}" method="POST">
-                <textarea name="ext_content" rows="10" class="w-full font-mono text-sm p-3 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-gray-300">{{ ext_content }}</textarea>
+                <textarea name="ext_content" rows="8" class="w-full font-mono text-sm p-3 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-gray-300">{{ ext_content }}</textarea>
                 <div class="mt-2 text-right">
                     <button type="submit" class="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded">Save Extensions</button>
                 </div>
