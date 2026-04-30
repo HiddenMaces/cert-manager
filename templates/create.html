@@ -2,16 +2,41 @@
 {% block content %}
 <div class="max-w-2xl mx-auto bg-white dark:bg-s1-800 rounded-lg shadow p-8 border dark:border-s1-700">
     <h1 class="text-2xl font-bold mb-6">Create New Certificate Request</h1>
-    
+
     <form method="POST" class="space-y-4">
+
+        <!-- Certificate Type -->
         <div>
-            <label class="block text-sm font-medium mb-1">FQDN (Common Name)</label>
-            <input type="text" name="fqdn" placeholder="www.example.com" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" required>
+            <label class="block text-sm font-medium mb-2">Certificate Type</label>
+            <div class="grid grid-cols-2 gap-3">
+                <label class="relative flex items-start p-3 rounded border dark:border-s1-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-s1-700 transition has-[:checked]:border-s1-500 has-[:checked]:bg-s1-50 dark:has-[:checked]:bg-s1-900">
+                    <input type="radio" name="cert_type" value="server" checked class="mt-0.5 mr-3 accent-purple-600">
+                    <div>
+                        <span class="font-medium text-sm">Server</span>
+                        <p class="text-xs text-gray-500 mt-0.5">TLS for websites and services (serverAuth)</p>
+                    </div>
+                </label>
+                <label class="relative flex items-start p-3 rounded border dark:border-s1-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-s1-700 transition has-[:checked]:border-s1-500 has-[:checked]:bg-s1-50 dark:has-[:checked]:bg-s1-900">
+                    <input type="radio" name="cert_type" value="client" class="mt-0.5 mr-3 accent-purple-600">
+                    <div>
+                        <span class="font-medium text-sm">Client</span>
+                        <p class="text-xs text-gray-500 mt-0.5">mTLS client authentication (clientAuth)</p>
+                    </div>
+                </label>
+            </div>
         </div>
+
+        <!-- FQDN -->
+        <div>
+            <label class="block text-sm font-medium mb-1">FQDN / Common Name</label>
+            <input type="text" name="fqdn" placeholder="www.example.com  or  user@example.com" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" required>
+            <p class="text-xs text-gray-500 mt-1">For client certs this is typically an email address or username.</p>
+        </div>
+
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium mb-1">Country</label>
-                <input type="text" name="c" value="NL" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white">
+                <input type="text" name="c" value="NL" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white" maxlength="2">
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">Organization</label>

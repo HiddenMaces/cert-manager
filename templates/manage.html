@@ -1,19 +1,82 @@
 {% extends "layout.html" %}
 {% block content %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    
+
+    <!-- Left: info, details, extensions -->
     <div class="lg:col-span-2 space-y-6">
+
+        <!-- Header -->
         <div class="flex justify-between items-center pb-4 border-b dark:border-s1-700">
-            <h1 class="text-2xl font-bold">{{ fqdn }}</h1>
-            <a href="/cert/delete/{{ fqdn }}" onclick="return confirm('Are you sure? This deletes the entire directory for this certificate.')" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded shadow transition">
-                Delete Certificate
-            </a>
+            <div>
+                <h1 class="text-2xl font-bold">{{ fqdn }}</h1>
+                <div class="mt-1">
+                    {% if cert_type == 'client' %}
+                        <span class="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">Client Certificate</span>
+                    {% else %}
+                        <span class="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Server Certificate</span>
+                    {% endif %}
+                </div>
+            </div>
+            <form action="/cert/delete/{{ fqdn }}" method="POST"
+                  onsubmit="return confirm('Are you sure? This permanently deletes all files for {{ fqdn }}.')">
+                <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded shadow transition">
+                    Delete Certificate
+                </button>
+            </form>
         </div>
 
+        <!-- Parsed Certificate Info (when signed) -->
+        {% if cert_details %}
         <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
-            <h3 class="text-lg font-bold mb-4">Certificate Details</h3>
-            <p class="text-xs text-gray-500 mb-4">Modify the parameters below to regenerate the CSR. <br><span class="text-red-500">Note: Changing the FQDN will rename the certificate directory and files.</span></p>
-            
+            <h3 class="text-lg font-bold mb-4">Certificate Info</h3>
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                <div>
+                    <dt class="text-xs uppercase font-bold text-gray-500 mb-0.5">Subject CN</dt>
+                    <dd class="font-mono">{{ cert_details.subject_cn or '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase font-bold text-gray-500 mb-0.5">Issuer CN</dt>
+                    <dd class="font-mono">{{ cert_details.issuer_cn or '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase font-bold text-gray-500 mb-0.5">Valid From</dt>
+                    <dd class="font-mono text-xs">{{ cert_details.not_before }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase font-bold text-gray-500 mb-0.5">Expires</dt>
+                    <dd class="font-mono text-xs {% if cert_details.days_left < 0 %}text-red-500{% elif cert_details.days_left < 30 %}text-yellow-500{% else %}text-green-600 dark:text-green-400{% endif %}">
+                        {{ cert_details.not_after }}
+                        {% if cert_details.days_left < 0 %}
+                            <span class="ml-1">(expired)</span>
+                        {% else %}
+                            <span class="ml-1">({{ cert_details.days_left }}d left)</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase font-bold text-gray-500 mb-0.5">Serial</dt>
+                    <dd class="font-mono text-xs break-all">{{ cert_details.serial }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase font-bold text-gray-500 mb-0.5">Extended Key Usage</dt>
+                    <dd class="text-xs">{{ cert_details.eku | join(', ') or '—' }}</dd>
+                </div>
+                {% if cert_details.sans %}
+                <div class="md:col-span-2">
+                    <dt class="text-xs uppercase font-bold text-gray-500 mb-0.5">Subject Alt Names</dt>
+                    <dd class="font-mono text-xs">{{ cert_details.sans | join('  ·  ') }}</dd>
+                </div>
+                {% endif %}
+            </dl>
+        </div>
+        {% endif %}
+
+        <!-- CSR Subject Details -->
+        <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
+            <h3 class="text-lg font-bold mb-4">Certificate Details (CSR)</h3>
+            <p class="text-xs text-gray-500 mb-4">Modify the parameters below to regenerate the CSR.<br>
+                <span class="text-red-500">Note: Changing the FQDN will rename the certificate directory and files.</span>
+            </p>
             <form action="/cert/update_details/{{ fqdn }}" method="POST" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -33,17 +96,18 @@
                         <input type="text" name="ou" value="{{ csr.ou }}" class="w-full p-2 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white">
                     </div>
                 </div>
-                <div class="text-right mt-2">
-                    <button type="submit" class="px-3 py-1 bg-s1-500 hover:bg-s1-400 text-white text-sm rounded transition">Update Details & CSR</button>
+                <div class="text-right">
+                    <button type="submit" class="px-3 py-1 bg-s1-500 hover:bg-s1-400 text-white text-sm rounded transition">Update Details & Regenerate CSR</button>
                 </div>
             </form>
         </div>
 
+        <!-- Extension File -->
         <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
             <h3 class="text-lg font-bold mb-2">Extension File (v3.ext)</h3>
-            <p class="text-xs text-gray-500 mb-2">Edit this to add Subject Alternative Names (SANs) before signing.</p>
+            <p class="text-xs text-gray-500 mb-2">Edit SANs and key usage before signing. Re-sign after saving changes.</p>
             <form action="/cert/update_ext/{{ fqdn }}" method="POST">
-                <textarea name="ext_content" rows="8" class="w-full font-mono text-sm p-3 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-gray-300">{{ ext_content }}</textarea>
+                <textarea name="ext_content" rows="9" class="w-full font-mono text-sm p-3 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-gray-300">{{ ext_content }}</textarea>
                 <div class="mt-2 text-right">
                     <button type="submit" class="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded">Save Extensions</button>
                 </div>
@@ -51,60 +115,135 @@
         </div>
     </div>
 
+    <!-- Right: signing, downloads, export -->
     <div class="space-y-6">
+
+        <!-- Signing Actions -->
         <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
-            <h3 class="text-lg font-bold mb-4">Signing Actions</h3>
-            
+            <h3 class="text-lg font-bold mb-4">Signing</h3>
+
             {% if has_crt %}
-                <div class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-3 rounded mb-4 text-center">
-                    Certificate Signed (.crt exists)
+                <div class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-3 rounded mb-3 text-center text-sm font-medium">
+                    Certificate signed
                 </div>
-                <p class="text-xs text-center text-gray-500 mb-4">You can re-sign if you changed extensions.</p>
+                <p class="text-xs text-center text-gray-500 mb-4">Re-sign to apply updated extensions or to renew.</p>
             {% else %}
-                <div class="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 p-3 rounded mb-4 text-center">
+                <div class="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 p-3 rounded mb-4 text-center text-sm font-medium">
                     Pending Signature
                 </div>
             {% endif %}
 
             <div class="space-y-3">
-                <button onclick="document.getElementById('passwordModal').classList.remove('hidden')" class="block w-full text-center py-2 bg-s1-500 hover:bg-s1-400 text-white rounded shadow transition">
-                    Sign with Root CA
+                <button onclick="document.getElementById('passwordModal').classList.remove('hidden')"
+                        class="block w-full text-center py-2 bg-s1-500 hover:bg-s1-400 text-white rounded shadow transition text-sm">
+                    {% if has_crt %}Re-sign{% else %}Sign{% endif %} with Root CA
                 </button>
-                
-                <a href="/cert/sign_self/{{ fqdn }}" class="block w-full text-center py-2 border border-s1-500 text-s1-500 dark:text-s1-400 hover:bg-s1-500 hover:text-white rounded transition">Self-Sign</a>
+
+                <form action="/cert/sign_self/{{ fqdn }}" method="POST"
+                      {% if has_crt %}onsubmit="return confirm('This will replace the existing certificate. Continue?')"{% endif %}>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <input type="number" name="days" value="365" min="1" max="3650"
+                               class="w-20 p-1 text-sm rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white text-center">
+                        <span class="text-xs text-gray-500">days validity</span>
+                    </div>
+                    <button type="submit"
+                            class="block w-full text-center py-2 border border-s1-500 text-s1-500 dark:text-s1-400 hover:bg-s1-500 hover:text-white rounded transition text-sm">
+                        {% if has_crt %}Re-{% endif %}Self-Sign
+                    </button>
+                </form>
             </div>
         </div>
 
+        <!-- Downloads -->
         <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
-            <h3 class="text-lg font-bold mb-4">Export .pem/.pf12</h3>
+            <h3 class="text-lg font-bold mb-4">Downloads</h3>
+            <div class="space-y-2">
+                {% if has_crt %}
+                <a href="/cert/download/{{ fqdn }}/crt"
+                   class="flex items-center justify-between w-full px-3 py-2 rounded border dark:border-s1-700 hover:bg-gray-50 dark:hover:bg-s1-700 transition text-sm">
+                    <span class="font-mono">{{ fqdn }}.crt</span>
+                    <span class="text-xs text-gray-500">Certificate</span>
+                </a>
+                {% endif %}
+                {% if has_csr %}
+                <a href="/cert/download/{{ fqdn }}/csr"
+                   class="flex items-center justify-between w-full px-3 py-2 rounded border dark:border-s1-700 hover:bg-gray-50 dark:hover:bg-s1-700 transition text-sm">
+                    <span class="font-mono">{{ fqdn }}.csr</span>
+                    <span class="text-xs text-gray-500">CSR</span>
+                </a>
+                {% endif %}
+                {% if has_key %}
+                <a href="/cert/download/{{ fqdn }}/key"
+                   class="flex items-center justify-between w-full px-3 py-2 rounded border dark:border-s1-700 hover:bg-gray-50 dark:hover:bg-s1-700 transition text-sm">
+                    <span class="font-mono">{{ fqdn }}.key</span>
+                    <span class="text-xs text-orange-500">Private Key</span>
+                </a>
+                {% endif %}
+                {% if has_p12 %}
+                <a href="/cert/download/{{ fqdn }}/p12"
+                   class="flex items-center justify-between w-full px-3 py-2 rounded border dark:border-s1-700 hover:bg-gray-50 dark:hover:bg-s1-700 transition text-sm">
+                    <span class="font-mono">{{ fqdn }}.p12</span>
+                    <span class="text-xs text-gray-500">PKCS#12</span>
+                </a>
+                {% endif %}
+                {% if not has_crt and not has_csr and not has_key and not has_p12 %}
+                    <p class="text-sm text-gray-500 text-center py-2">No files available yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Export PKCS#12 -->
+        <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
+            <h3 class="text-lg font-bold mb-4">Export PKCS#12</h3>
             {% if has_crt %}
                 <form action="/cert/create_p12/{{ fqdn }}" method="POST">
-                    <label class="text-xs uppercase font-bold text-gray-500">PEM/PF12 Password</label>
-                    <input type="password" name="password" class="w-full p-2 mb-2 rounded border dark:bg-s1-900 dark:border-s1-700">
-                    <button type="submit" class="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded">Create .p12</button>
+                    <label class="block text-xs uppercase font-bold text-gray-500 mb-1">P12 Password</label>
+                    <input type="password" name="password" class="w-full p-2 mb-3 rounded border dark:bg-s1-900 dark:border-s1-700">
+                    <button type="submit" class="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm">
+                        {% if has_p12 %}Re-create{% else %}Create{% endif %} .p12
+                    </button>
                 </form>
                 {% if has_p12 %}
-                    <p class="text-xs text-green-500 mt-2 text-center">.p12 and .pem file available in directory.</p>
+                    <p class="text-xs text-green-500 mt-2 text-center">P12 bundle includes the CA chain.</p>
                 {% endif %}
             {% else %}
-                <p class="text-sm text-gray-500">Sign the certificate first to enable export options.</p>
+                <p class="text-sm text-gray-500">Sign the certificate first to enable export.</p>
             {% endif %}
         </div>
+
     </div>
 </div>
 
+<!-- Root CA Password Modal -->
 <div id="passwordModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
     <div class="bg-white dark:bg-s1-800 rounded-lg shadow-xl p-6 w-96 border dark:border-s1-700">
-        <h3 class="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">Root CA Authorization</h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Enter the Root CA password to sign <strong>{{ fqdn }}</strong>.</p>
-        
+        <h3 class="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">Root CA Authorization</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">
+            {% if has_crt %}Re-sign{% else %}Sign{% endif %} <strong>{{ fqdn }}</strong> with the Root CA.
+        </p>
+        {% if has_crt %}
+            <p class="text-xs text-yellow-600 dark:text-yellow-400 mb-4">This will replace the existing certificate.</p>
+        {% else %}
+            <div class="mb-4"></div>
+        {% endif %}
+
         <form action="{{ url_for('sign_root', fqdn=fqdn) }}" method="POST">
-            <label class="block text-xs uppercase font-bold text-gray-500 mb-1">Password</label>
-            <input type="password" name="password" class="w-full p-2 mb-6 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white focus:ring-2 focus:ring-s1-500 outline-none" autofocus>
-            
+            <label class="block text-xs uppercase font-bold text-gray-500 mb-1">Root CA Password</label>
+            <input type="password" name="password"
+                   class="w-full p-2 mb-3 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white focus:ring-2 focus:ring-s1-500 outline-none"
+                   autofocus>
+            <label class="block text-xs uppercase font-bold text-gray-500 mb-1">Validity (days)</label>
+            <input type="number" name="days" value="365" min="1" max="3650"
+                   class="w-full p-2 mb-6 rounded border dark:bg-s1-900 dark:border-s1-700 dark:text-white focus:ring-2 focus:ring-s1-500 outline-none">
             <div class="flex justify-end space-x-3">
-                <button type="button" onclick="document.getElementById('passwordModal').classList.add('hidden')" class="px-4 py-2 rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-s1-700 text-gray-700 dark:text-gray-300 transition">Cancel</button>
-                <button type="submit" class="px-4 py-2 bg-s1-500 hover:bg-s1-400 text-white rounded shadow transition">Sign Certificate</button>
+                <button type="button"
+                        onclick="document.getElementById('passwordModal').classList.add('hidden')"
+                        class="px-4 py-2 rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-s1-700 text-gray-700 dark:text-gray-300 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-s1-500 hover:bg-s1-400 text-white rounded shadow transition">
+                    Sign Certificate
+                </button>
             </div>
         </form>
     </div>

@@ -2,21 +2,38 @@
 
 {% block content %}
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    
+
     <div class="md:col-span-1 space-y-6">
+
+        <!-- Root CA Status -->
         <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
             <h2 class="text-lg font-bold mb-4 text-s1-500 dark:text-s1-400">Root CA Status</h2>
             {% if root_exists %}
-                <div class="flex items-center text-green-600 dark:text-green-400 mb-4">
+                <div class="flex items-center text-green-600 dark:text-green-400 mb-3">
                     <span class="text-2xl mr-2">✓</span> Active
                 </div>
-                <p class="text-sm text-gray-500 mb-4">Root {{ root_filename }} is ready to sign.</p>
-                
-                <a href="{{ url_for('download_root') }}" class="block text-center w-full bg-green-600 hover:bg-green-500 text-white py-2 rounded mb-4 transition">
+
+                {% if root_info %}
+                <dl class="text-sm mb-4 space-y-1">
+                    <div class="flex justify-between">
+                        <dt class="text-gray-500">CN</dt>
+                        <dd class="font-medium truncate ml-2">{{ root_info.cn }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                        <dt class="text-gray-500">Expires</dt>
+                        <dd class="font-mono {% if root_info.days_left < 90 %}text-yellow-500{% else %}text-green-600 dark:text-green-400{% endif %}">
+                            {{ root_info.not_after }}
+                            <span class="text-xs">({{ root_info.days_left }}d)</span>
+                        </dd>
+                    </div>
+                </dl>
+                {% endif %}
+
+                <a href="{{ url_for('download_root') }}" class="block text-center w-full bg-green-600 hover:bg-green-500 text-white py-2 rounded mb-4 transition text-sm">
                     Download {{ root_filename }}
                 </a>
 
-                <details class="mt-4">
+                <details class="mt-2">
                     <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-700">Advanced: Recreate Root CA</summary>
                     <div class="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-100 dark:border-red-900">
                         <p class="text-xs text-red-600 mb-2">Warning: Recreating the Root CA will invalidate all previously signed certificates.</p>
@@ -27,7 +44,7 @@
                     </div>
                 </details>
             {% else %}
-                <p class="text-sm mb-4">No Root CA found.</p>
+                <p class="text-sm mb-4 text-gray-500">No Root CA found. Create one before signing certificates.</p>
                 <form action="/cert/create_root" method="GET">
                     <input type="text" name="cn" placeholder="Common Name" class="w-full mb-2 p-2 rounded border dark:bg-s1-900 dark:border-s1-700" required>
                     <button type="submit" class="w-full bg-s1-500 hover:bg-s1-400 text-white py-2 rounded transition">Create Root CA</button>
@@ -35,53 +52,80 @@
             {% endif %}
         </div>
 
+        <!-- New Certificate -->
         <div class="bg-white dark:bg-s1-800 rounded-lg shadow p-6 border dark:border-s1-700">
             <h2 class="text-lg font-bold mb-4 text-s1-500 dark:text-s1-400">New Certificate</h2>
-            <p class="text-sm mb-4 text-gray-500">Generate a new Private Key and CSR.</p>
+            <p class="text-sm mb-4 text-gray-500">Generate a new key and CSR for a server or client certificate.</p>
             <a href="/cert/create" class="block text-center w-full border border-s1-500 text-s1-500 dark:text-s1-400 hover:bg-s1-500 hover:text-white py-2 rounded transition">Start Wizard</a>
         </div>
     </div>
 
+    <!-- Certificate Table -->
     <div class="md:col-span-2">
         <div class="bg-white dark:bg-s1-800 rounded-lg shadow overflow-hidden border dark:border-s1-700">
             <div class="px-6 py-4 border-b dark:border-s1-700 flex justify-between items-center">
                 <h2 class="text-lg font-bold">Managed Certificates</h2>
                 <span class="bg-s1-700 text-white px-2 py-1 rounded text-xs">{{ certs|length }} found</span>
             </div>
-            <table class="w-full text-left">
-                <thead class="bg-gray-50 dark:bg-s1-900">
-                    <tr>
-                        <th class="px-6 py-3 text-xs font-medium uppercase tracking-wider">FQDN</th>
-                        <th class="px-6 py-3 text-xs font-medium uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-xs font-medium uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-s1-700">
-                    {% for cert in certs %}
-                    <tr class="hover:bg-gray-50 dark:hover:bg-s1-700 transition">
-                        <td class="px-6 py-4 font-medium">{{ cert.fqdn }}</td>
-                        <td class="px-6 py-4">
-                            {% if cert.status == 'green' %}
-                                <span class="px-2 py-1 text-xs rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Trusted (Root)</span>
-                            {% elif cert.status == 'blue' %}
-                                <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Self-Signed</span>
-                            {% elif cert.status == 'red' %}
-                                <span class="px-2 py-1 text-xs rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Unknown/Mismatch</span>
-                            {% else %}
-                                <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Pending</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4">
-                            <a href="/cert/manage/{{ cert.fqdn }}" class="text-s1-500 hover:text-s1-400 font-semibold mr-4">Manage</a>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3" class="px-6 py-8 text-center text-gray-500">No certificates found. Create one to get started.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 dark:bg-s1-900">
+                        <tr>
+                            <th class="px-4 py-3 text-xs font-medium uppercase tracking-wider">FQDN</th>
+                            <th class="px-4 py-3 text-xs font-medium uppercase tracking-wider">Type</th>
+                            <th class="px-4 py-3 text-xs font-medium uppercase tracking-wider">Status</th>
+                            <th class="px-4 py-3 text-xs font-medium uppercase tracking-wider">Expires</th>
+                            <th class="px-4 py-3 text-xs font-medium uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-s1-700">
+                        {% for cert in certs %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-s1-700 transition">
+                            <td class="px-4 py-4 font-medium text-sm">{{ cert.fqdn }}</td>
+                            <td class="px-4 py-4">
+                                {% if cert.cert_type == 'client' %}
+                                    <span class="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">Client</span>
+                                {% else %}
+                                    <span class="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Server</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4">
+                                {% if cert.status == 'green' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Trusted</span>
+                                {% elif cert.status == 'blue' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Self-Signed</span>
+                                {% elif cert.status == 'red' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Unknown</span>
+                                {% elif cert.status == 'error' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">Error</span>
+                                {% else %}
+                                    <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4 text-sm">
+                                {% if cert.not_after %}
+                                    <span class="font-mono {% if cert.days_left is not none and cert.days_left < 0 %}text-red-500{% elif cert.days_left is not none and cert.days_left < 30 %}text-yellow-500{% endif %}">
+                                        {{ cert.not_after }}
+                                    </span>
+                                    {% if cert.days_left is not none %}
+                                        <span class="text-xs text-gray-400 block">{{ cert.days_left }}d left</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-gray-400">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4">
+                                <a href="/cert/manage/{{ cert.fqdn }}" class="text-s1-500 hover:text-s1-400 font-semibold text-sm">Manage</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-gray-500">No certificates found. Create one to get started.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
