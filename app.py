@@ -16,6 +16,11 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
 
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(app.template_folder, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 CERT_DIR = os.getenv('CERT_DIR', './certs')
 ROOT_DIR = os.getenv('ROOT_DIR', './rootCA')
 ROOT_CA_NAME = os.getenv('ROOT_CA_NAME', 'rootca')
